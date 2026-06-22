@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+    php:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        volumes:
+            - .:/app
+        depends_on:
+            - db
+        command: tail -f /dev/null
+
+    db:
+        image: postgres:15-alpine
+        environment:
+            POSTGRES_DB: app_db
+            POSTGRES_USER: app_user
+            POSTGRES_PASSWORD: secretpassword
+        ports:
+            - "5432:5432"
+        volumes:
+            - db-data:/var/lib/postgresql/data
+
+volumes:
+    db-data:
