@@ -42,7 +42,7 @@ class PostApiClient
                         'page' => $page,
                     ],
                     'timeout' => self::TIMEOUT,
-                    'user_data' => $page
+                    'user_data' => $page,
                 ];
 
                 if (!is_null($proxy)) {
@@ -60,19 +60,29 @@ class PostApiClient
 
             foreach ($this->client->stream($responses) as $response => $chunk) {
                 try {
+                    if ($chunk->isFirst()) {
+                        $statusCode = $response->getStatusCode();
+
+                        if ($statusCode < 200 || $statusCode >= 300) {
+                            $this->logger->warning("Invalid response", ['Status code' => $statusCode]);
+                            $response->cancel();
+
+                            continue;
+                        }
+                    }
+
                     if (!$chunk->isLast()) {
                         continue;
                     }
+
                     $page = (int)$response->getInfo('user_data');
 
-                    $statusCode = $response->getStatusCode();
-
-                    if ($statusCode >= 200 && $statusCode < 300) {
-                        array_push($ids, ...array_column($response->toArray(), 'id'));
-                        $loadedPages[] = $page;
-                    }
+                    array_push($ids, ...array_column($response->toArray(false), 'id'));
+                    $loadedPages[] = $page;
 
                 } catch (\Throwable $e) {
+                    $response->cancel();
+
                     $this->logger->warning('Error', [
                         'error' => $e->getMessage(),
                     ]);
@@ -126,20 +136,28 @@ class PostApiClient
 
             foreach ($this->client->stream($responses) as $response => $chunk) {
                 try {
+                    if ($chunk->isFirst()) {
+                        $statusCode = $response->getStatusCode();
+
+                        if ($statusCode < 200 || $statusCode >= 300) {
+                            $this->logger->warning("Invalid response", ['Status code' => $statusCode]);
+                            $response->cancel();
+
+                            continue;
+                        }
+                    }
+
                     if (!$chunk->isLast()) {
                         continue;
                     }
-                    $id = (int)$response->getInfo('user_data');
 
-                    $statusCode = $response->getStatusCode();
+                    $id = (string)$response->getInfo('user_data');
 
-                    if ($statusCode >= 200 && $statusCode < 300) {
-                        $result[] = $response->toArray();
-                        $loadedIds[] = $id;
-                        $this->logger->info("Downloaded $id");
-                    }
-
+                    $result[] = $response->toArray(false);
+                    $loadedIds[] = $id;
                 } catch (\Throwable $e) {
+                    $response->cancel();
+
                     $this->logger->warning('Error', [
                         'error' => $e->getMessage(),
                     ]);
@@ -152,10 +170,9 @@ class PostApiClient
         }
 
         foreach ($pendingIds as $id) {
-            $this->logger->warning("Failed to import id: $id");
+            $this->logger->warning("Failed to import post with id: $id");
         }
 
         return $result;
     }
-
 }
