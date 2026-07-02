@@ -2,18 +2,12 @@
 
 namespace App\Service;
 
-use Psr\Log\LoggerInterface;
-
-class ProxyPoolService
+class ProxyPoolService implements ProxyPoolServiceInterface
 {
     private array $proxies;
-    private int $nextIndex;
 
-    public function __construct(
-        private readonly LoggerInterface $logger,
-    )
+    public function __construct()
     {
-        $this->nextIndex = 0;
         $proxyString = $_ENV['PROXY'] ?? '';
         $this->proxies = array_filter(explode(';', $proxyString));
     }
@@ -24,13 +18,9 @@ class ProxyPoolService
             return null;
         }
 
-        $proxy = $this->proxies[$this->nextIndex++];
-
-        if ($this->nextIndex >= count($this->proxies)) {
-            $this->nextIndex = 0;
-        }
+        $proxy = array_shift($this->proxies);
+        $this->proxies[] = $proxy;
 
         return $proxy;
     }
-
 }

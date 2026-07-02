@@ -6,20 +6,22 @@ use App\Entity\Post;
 use App\Repository\PostRepository;
 use Psr\Log\LoggerInterface;
 
+//TODO: Добавит сохранения поседней страницы в файл
 class PostImporterService
 {
     private const int PAGE_CHUNK_SIZE = 5;
 
     public function __construct(
-        private PostRepository  $postRepository,
-        private PostApiClient   $postApiClient,
-        private LoggerInterface $logger
+        private readonly PostRepository $postRepository,
+        private readonly PostApiClient  $postApiClient,
+        private LoggerInterface         $logger
     )
     {
     }
 
     public function import(): void
     {
+        //TODO: сохранять на диск номер последней страницы
         $currentPage = 1;
 
         while (true) {
@@ -39,6 +41,11 @@ class PostImporterService
             $posts = [];
 
             foreach ($postsData as $data) {
+                if (!$this->isValidPost($data)) {
+                    $this->logger->warning('Invalid post data');
+                    continue;
+                }
+
                 $id = $data['id'];
 
                 if (!in_array($id, $existingIds) && !in_array($id, $processedIds)) {
@@ -56,7 +63,7 @@ class PostImporterService
     private function arrayToPost(array $data): Post
     {
         $post = new Post();
-        $post->setId($data['id'])
+        $post->setExternalId($data['id'])
             ->setTitle($data['title'])
             ->setDescription($data['description'])
             ->setBody($data['body'])
@@ -65,5 +72,22 @@ class PostImporterService
         return $post;
     }
 
+    private function isValidPost(array $data): bool
+    {
+        if (empty($data['id']) || empty($data['title']) || empty($data['description']) || empty($data['body'])) {
+            return false;
+        }
 
+        if (mb_strlen($data['id']) > 255 || mb_strlen($data['title']) > 255 || mb_strlen($data['description']) > 255 || mb_strlen($data['body']) > 255) {
+            return false;
+        }
+
+        try {
+            new \DateTimeImmutable($data['createdAt']);
+        } catch (\Exception $e) {
+            return false;
+        }
+
+        return true;
+    }
 }

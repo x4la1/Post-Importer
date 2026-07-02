@@ -3,15 +3,18 @@
 namespace App\Entity;
 
 use App\Repository\PostRepository;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PostRepository::class)]
 class Post
 {
     #[ORM\Id]
-    #[ORM\Column(type: Types::STRING, length: 255)]
-    private ?string $id = null;
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $externalId = null;
 
     #[ORM\Column(length: 255)]
     private ?string $title = null;
@@ -25,14 +28,19 @@ class Post
     #[ORM\Column(length: 255)]
     private ?string $body = null;
 
-    public function getId(): ?string
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function setId(string $id): static
+    public function getExternalId(): ?string
     {
-        $this->id = $id;
+        return $this->externalId;
+    }
+
+    public function setExternalId(?string $externalId): static
+    {
+        $this->externalId = $externalId;
 
         return $this;
     }

@@ -33,12 +33,12 @@ class PostRepository extends ServiceEntityRepository
         }
 
         $results = $this->createQueryBuilder('p')
-            ->select('p.id')
-            ->where('p.id IN (:ids)')
+            ->select('p.externalId')
+            ->where('p.externalId IN (:ids)')
             ->setParameter('ids', $idsToCheck)
             ->getQuery()
             ->getArrayResult();
 
-        return array_column($results, 'id');
+        return array_column($results, 'externalId');
     }
 }

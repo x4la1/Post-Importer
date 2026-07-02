@@ -3,8 +3,6 @@
 namespace App\Service;
 
 use Psr\Log\LoggerInterface;
-use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 
@@ -16,7 +14,7 @@ class PostApiClient
 
     public function __construct(
         private readonly HttpClientInterface $client,
-        private readonly ProxyPoolService    $proxyPool,
+        private readonly ProxyPoolServiceInterface    $proxyPool,
         private readonly LoggerInterface     $logger
     )
     {
