@@ -6,27 +6,40 @@ use App\Entity\Post;
 use App\Repository\PostRepository;
 use Psr\Log\LoggerInterface;
 
-//TODO: Добавит сохранения поседней страницы в файл
 class PostImporterService
 {
     private const int PAGE_CHUNK_SIZE = 5;
+    private const string LAST_PAGE_FILE_PATH = __DIR__ . '/LastPage.txt';
 
     public function __construct(
-        private readonly PostRepository $postRepository,
-        private readonly PostApiClient  $postApiClient,
-        private LoggerInterface         $logger
+        private readonly PostRepository     $postRepository,
+        private readonly PostApiClient      $postApiClient,
+        private ImportStateStorageInterface $importStateStorage,
+        private LoggerInterface             $logger
     )
     {
     }
 
-    public function import(): void
+    public function import(?int $fromPage = null, ?int $toPage = null): void
     {
-        //TODO: сохранять на диск номер последней страницы
-        $currentPage = 1;
+        $currentPage = $fromPage ?? $this->importStateStorage->getLastPageToImport();
 
         while (true) {
+            $this->importStateStorage->setLastPageToImport($currentPage);
             $pages = range($currentPage, $currentPage + self::PAGE_CHUNK_SIZE - 1);
+
             $currentPage += self::PAGE_CHUNK_SIZE;
+
+            if ($toPage !== null) {
+                $pages = array_values(array_filter(
+                    $pages,
+                    fn($p) => $p <= $toPage
+                ));
+            }
+
+            if (empty($pages)) {
+                break;
+            }
 
             $postsData = $this->postApiClient->fetchPostsByPages($pages);
 
